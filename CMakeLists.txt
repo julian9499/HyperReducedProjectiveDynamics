@@ -1,7 +1,7 @@
 # CMakeLists files in this project can
 # refer to the root source directory of the project as ${HRPD_SOURCE_DIR} and
 # to the root binary directory of the project as ${HRPD_BINARY_DIR}
-cmake_minimum_required(VERSION 3.22.1)
+cmake_minimum_required(VERSION 3.19.4)
 project (HRPD)
 
 add_compile_definitions(EIGEN_DONT_PARALLELIZE)
@@ -17,7 +17,11 @@ include(libigl)
 # Enable the target igl::glfw
 igl_include(glfw)
 
-set(OpenMP_CXX_FLAGS "-fopenmp")
+if(MSVC)
+    set(OpenMP_CXX_FLAGS "/fopenmp")
+else()
+    set(OpenMP_CXX_FLAGS "-fopenmp")
+endif()
 set(_CRT_SECURE_NO_WARNINGS)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 

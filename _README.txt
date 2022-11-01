@@ -44,6 +44,16 @@ and simulated in real-time, using Alec Jacobson's libIGL for loading and renderi
 needed for the example code, the Hyper-Reduced Projective Dynamics code does not use it).
 On http://graphics.tudelft.nl/~klaus/ you will also find a precompiled executable.
 
+COMPILATION CMAKE:
+ - prerequisites:
+    - Install CMake version 3.22.1 or higher
+    - Install a compiler of your choice Visual studio build tools, gcc and minGW should work
+ - use an IDE to import the project as cmake project and run it or use command line
+    - CMAKE COMMANDLINE:
+        - make a folder called build in the project directory
+        - open a terminal in the folder and call `cmake ../`
+        - now build the generated build folder by cmake with your preferred command line tool.
+
 COMPILATION/SETUP:
 - Add all code files in the "\src" folder, EXCEPT FOR THE FILES
     doubleToFloatDeviceCpy.cu 
@@ -68,16 +78,6 @@ COMPILATION/SETUP:
    - press 4 to toggle stiffness between normal and super elastic
    - press 5 to toggle between bullet time (1/4th of real time) and real time 
    - press 6 to repeat precomputation
-
-COMPILATION CMAKE:
- - prerequisites:
-    - Install CMake version 3.22.1 or higher
-    - Install a compiler of your choice Visual studio build tools, gcc and minGW should work
- - use an IDE to import the project as cmake project and run it or use command line
-    - CMAKE COMMANDLINE:
-        - make a folder called build in the project directory
-        - open a terminal in the folder and call `cmake ../`
-        - now build the generated build folder by cmake with your preferred command line tool.
    
 DEPENDENCIES:
 - CPU parallelization is done using OpenMP, so e.g. in Visual Studio, the /openmp option needs
