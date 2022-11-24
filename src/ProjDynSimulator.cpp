@@ -104,9 +104,7 @@ ProjDynSimulator::ProjDynSimulator
 	m_rhsInterpolReusableWeights(0, 0),
 	m_rhsInterpolWeightRadiusMultiplier(rhsInterpolWeightRadius),
 
-	m_useSparseMatricesForSubspace(PROJ_DYN_SPARSIFY),
-
-    m_chosenColors(std::vector<int>)
+	m_useSparseMatricesForSubspace(PROJ_DYN_SPARSIFY)
 
 #ifdef PROJ_DYN_USE_CUBLAS
 	,
