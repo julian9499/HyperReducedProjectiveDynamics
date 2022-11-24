@@ -1717,6 +1717,12 @@ void ProjDynSimulator::step(int numIterations)
 
 		}
 
+        for (int ind = 0; ind < numConstraints; ind++) {
+            ProjDynConstraint* c = usedConstraints->at(ind);
+            int p = c->getSelectionMatrix().;
+            std::cout << "vert index "<< p << std::endl;
+        } // HERE
+
 		m_momentumStopWatch.startStopWatch();
 		// Add the term from the conservation of momentum 
 		if (m_usingSubspaces) {

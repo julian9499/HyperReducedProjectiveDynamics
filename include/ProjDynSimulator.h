@@ -83,7 +83,7 @@ namespace PD {
 		int t1, t2, vOtherT1, vOtherT2;
 	};
 
-	class ProjDynConstraint;
+	class   ProjDynConstraint;
 	class CenterConstraint;
 	class TetExampleBased;
 
