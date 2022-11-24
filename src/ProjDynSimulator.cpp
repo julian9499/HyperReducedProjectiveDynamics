@@ -104,7 +104,9 @@ ProjDynSimulator::ProjDynSimulator
 	m_rhsInterpolReusableWeights(0, 0),
 	m_rhsInterpolWeightRadiusMultiplier(rhsInterpolWeightRadius),
 
-	m_useSparseMatricesForSubspace(PROJ_DYN_SPARSIFY)
+	m_useSparseMatricesForSubspace(PROJ_DYN_SPARSIFY),
+
+    m_chosenColors(std::vector<int>)
 
 #ifdef PROJ_DYN_USE_CUBLAS
 	,
@@ -237,6 +239,10 @@ PDPositions& ProjDynSimulator::getPositions()
 PDPositions& ProjDynSimulator::getVelocities()
 {
 	return m_velocities;
+}
+
+std::vector<int> ProjDynSimulator::getChosenColors() {
+    return m_chosenColors;
 }
 
 void PD::ProjDynSimulator::recomputeWeightedForces() {
@@ -1195,6 +1201,118 @@ void PD::ProjDynSimulator::initRHSInterpolGroup(RHSInterpolationGroup& g, std::v
 void ProjDynSimulator::setup() {
 	std::cout << "Setting simulation..." << std::endl;
 
+    // VIVACE
+
+    auto adjacency = new Eigen::SparseMatrix<double>;
+    adjacency->setZero();
+    adjacency->resize(m_numVertices, m_numVertices);
+
+    auto numOfDeps = new Eigen::MatrixXd(1, m_numVertices);
+    numOfDeps->setOnes();
+
+    for (auto c : m_constraints) {
+        PDSparseMatrixRM p = c->getSelectionMatrix();
+        auto adjacencyForThisConstraint = Eigen::SparseMatrix<double, Eigen::RowMajor>(c->getSelectionMatrixTransposed()) * p;
+        *adjacency += adjacencyForThisConstraint;
+    } // HERE
+
+    double minDegree = adjacency->diagonal().minCoeff();
+    if (minDegree < 1.0) {
+        minDegree = 1.0;
+    }
+
+    // Graph coloring line 1-3 vivace
+    std::vector<int> vecs;
+    std::vector<int> chosenColor;
+    for (int i = 0; i < m_numVertices; i++){
+        vecs.push_back(i);
+        chosenColor.push_back(-1);
+    }
+
+    std::vector<std::vector<int>> colors;
+    std::vector<int> amountOfColorsHad;
+    for (int i = 0; i < m_numVertices; i++) {
+        std::vector<int> vertexColors;
+        int colorAmount = int(adjacency->coeff(i, i) / minDegree) + 1;
+        for(int j = 0; j < colorAmount; j++){
+            vertexColors.push_back(j);
+        }
+        amountOfColorsHad.push_back(colorAmount);
+        colors.push_back(vertexColors);
+    }
+
+    std::vector<std::vector<int>> neighbours;
+    for(int i = 0; i < m_numVertices; i++) {
+        std::vector<int> vNeighbours;
+        for (int j = 0; j < m_numVertices; j++) {
+            if (i != j && adjacency->coeff(i, j) != 0) {
+                vNeighbours.push_back(j);
+            }
+        }
+        neighbours.push_back(vNeighbours);
+    }
+
+    //Graph coloring rest
+    std::vector<int> vecsToRemove;
+    int count = 0;
+    while(!vecs.empty() && count < 1000){
+        // Tentative Coloring
+        for (int v : vecs){
+            int ind = rand() % colors[v].size(); // pick a random index from the possible colors
+            chosenColor[v] = colors[v][ind]; // assign color
+
+        }
+
+
+        vecsToRemove.clear();
+        // Conflict Resolution
+        for (int v : vecs) {
+            std::vector<int> vNeighbours = neighbours[v];
+            bool  collision = false;
+            for (int nv: vNeighbours){
+                collision = collision && chosenColor[nv] != chosenColor[v];
+            }
+            if (!collision) { // line 10 to 12
+                std::cout << "no collisions" << std::endl;
+                vecsToRemove.push_back(v);
+                for (int nv: vNeighbours){
+                    colors[nv].erase(std::remove(colors[nv].begin(), colors[nv].end(),chosenColor[v]), colors[nv].end());
+                }
+            }
+        }
+
+        for (int v : vecsToRemove){
+            vecs.erase(std::remove(vecs.begin(), vecs.end(),v), vecs.end());
+        }
+
+        // Feed the Hungry
+        for (int v: vecs){
+            if(colors[v].empty()) {
+                colors[v].push_back(amountOfColorsHad[v] -1);
+                amountOfColorsHad[v] += 1;
+            }
+        }
+        count++;
+    }
+    m_chosenColors = chosenColor;
+    //VIVACE
+
+//    for (int i = 0; i < vecs.size(); i++) {
+//        std::cout << " " << chosenColor[vecs[i]] << std::endl;
+//    }
+
+
+
+//    std::cout << "length: " << Eigen::MatrixXd(*adjacency) << std::endl;
+//    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+//    std::string name = "adjacency.csv";
+//    std::ofstream file(name.c_str());
+//    file << Eigen::MatrixXd(*adjacency).format(CSVFormat);
+
+
+
+
+
 #ifndef EIGEN_DONT_PARALLELIZE
 	Eigen::setNbThreads(PROJ_DYN_NUM_THREADS);
 #endif
@@ -1717,12 +1835,6 @@ void ProjDynSimulator::step(int numIterations)
 
 		}
 
-        for (int ind = 0; ind < numConstraints; ind++) {
-            ProjDynConstraint* c = usedConstraints->at(ind);
-            int p = c->getSelectionMatrix().;
-            std::cout << "vert index "<< p << std::endl;
-        } // HERE
-
 		m_momentumStopWatch.startStopWatch();
 		// Add the term from the conservation of momentum 
 		if (m_usingSubspaces) {
@@ -2073,3 +2185,4 @@ void PD::ProjDynSimulator::refreshLHS()
 		}
 	}
 }
+

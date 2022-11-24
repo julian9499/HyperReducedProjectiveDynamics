@@ -87,6 +87,7 @@ public:
 	std::string m_url;
 	StopWatch m_simTimer;
 	std::vector<unsigned int> m_gripVerts;
+    std::vector<int> m_chosenColors;
 	bool m_isGripping = false;
 	bool m_toggleStiff = false;
 	bool m_toggleSlowmo = false;
@@ -99,12 +100,13 @@ public:
 		m_velos(velos),
 		m_simTimer(10000, 100000),
 		m_url(url),
-		m_isGripping(false),
+		m_isGripping(true),
 		m_toggleStiff(false)
 	{
 		m_sim = initSimulator(m_verts, m_faces, m_velos, m_url);
 		m_numIterations = numIterations;
 		m_numVertices = m_verts.rows();
+        m_chosenColors = m_sim->getChosenColors();
 
 		/* The following is specific to the armadillo.obj mesh, it's a list of vertices on the
 		   back, on which the mesh is "hung up" when the user presses 3.
@@ -232,6 +234,7 @@ int main()
 		// (it does numIterations local/global steps to simulate the next timestep
 		// before drawing the mesh).
 		SimViewer simViewer(verts, faces, velos, meshURL, numIterations);
+        std::cout << simViewer.m_chosenColors[0] << std::endl;
 		igl::opengl::glfw::Viewer viewer;
 		viewer.data().set_mesh(verts, faces);
 		viewer.core().is_animating = true;

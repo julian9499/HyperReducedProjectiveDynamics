@@ -174,7 +174,9 @@ namespace PD {
 
 		EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-	private:
+        std::vector<int> getChosenColors();
+
+    private:
 		PDScalar m_initPosNorm;
 
 		std::string m_meshURL;
@@ -427,9 +429,10 @@ namespace PD {
 
 		/* Count of frames (full simulation steps) since the start of the simulation */
 		int m_frameCount;
+        std::vector<int> m_chosenColors;
 
 
-		PDScalar m_lastRHSNorm = 0;
+        PDScalar m_lastRHSNorm = 0;
 
 		// CUDA stuff
 #ifdef PROJ_DYN_USE_CUBLAS
