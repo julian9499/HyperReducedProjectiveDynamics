@@ -25,6 +25,7 @@ SOFTWARE.
 */
 #include <iostream>
 #include <omp.h>
+#include <chrono>
 #include <limits>
 
 #include "ProjDynSimulator.h"
@@ -1201,20 +1202,63 @@ void ProjDynSimulator::setup() {
 
     // VIVACE
 
-    auto adjacency = new Eigen::SparseMatrix<double>;
-    adjacency->setZero();
-    adjacency->resize(m_numVertices, m_numVertices);
+    std::cout << "Number of Constraints: " << m_constraints.size() << std::endl;
+    std::cout << "Number of vertices: " << m_numVertices << std::endl;
+
+    Eigen::SparseMatrix<double> adjacency;
+    adjacency.resize(m_numVertices, m_numVertices);
 
     auto numOfDeps = new Eigen::MatrixXd(1, m_numVertices);
     numOfDeps->setOnes();
 
-    for (auto c : m_constraints) {
-        PDSparseMatrixRM p = c->getSelectionMatrix();
-        auto adjacencyForThisConstraint = Eigen::SparseMatrix<double, Eigen::RowMajor>(c->getSelectionMatrixTransposed()) * p;
-        *adjacency += adjacencyForThisConstraint;
-    } // HERE
+//    std::vector<Eigen::SparseMatrix<double>> matrices;
+//    for(int i = 0; i < PROJ_DYN_NUM_THREADS; i++){
+//        matrices.push_back(Eigen::SparseMatrix<double>(adjacency));
+//    }
 
-    double minDegree = adjacency->diagonal().minCoeff();
+    std::cout << "started parallel adjacency building loop" << std::endl;
+    auto start = high_resolution_clock::now();
+//    PROJ_DYN_PARALLEL_FOR
+    for (auto c : m_constraints) {
+        PDSparseMatrixRM p = PDSparseMatrixRM (c->getSelectionMatrixTransposed());
+        for (int k=0; k<p.outerSize(); ++k)
+            for (PDSparseMatrixRM::InnerIterator it(p,k); it; ++it)
+            {
+                it.valueRef() = 1.0f;
+            }
+        auto adjacencyForThisConstraint = p * Eigen::SparseMatrix<double, Eigen::RowMajor>(p.transpose());
+        adjacency += adjacencyForThisConstraint;
+//        matrices[omp_get_thread_num()].selfadjointView<Eigen::Upper>().rankUpdate(c->getSelectionMatrixTransposed());
+    } // HERE
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    std::cout << "finished parallel adjacency building loop time taken: " << duration.count()/1000000 << std::endl;
+
+
+//    for(int i = 0; i < PROJ_DYN_NUM_THREADS; i++){
+//        adjacency+= matrices[i];
+//    }
+
+//    adjacency.selfadjointView<Eigen::Lower>() = adjacency.selfadjointView<Eigen::Upper>();
+
+
+//    std::string name = "adjacency_armadillo.csv";
+//    std::ofstream file(name.c_str());
+//    for (int k=0; k < adjacency.outerSize(); ++k)
+//    {
+//        for (Eigen::SparseMatrix<double>::InnerIterator it(adjacency,k); it; ++it)
+//        {
+//            file << 1+it.row() << ","; // row index
+//            file << 1+it.col() << ","; // col index (here it is equal to k)
+//            file << "1" << "\n";
+//        }
+//    }
+//    file.flush();
+//    file.close();
+    std::cout << "done with adjacency matrix" << std::endl;
+
+
+    double minDegree = adjacency.diagonal().minCoeff();
     if (minDegree < 1.0) {
         minDegree = 1.0;
     }
@@ -1222,16 +1266,30 @@ void ProjDynSimulator::setup() {
     // Graph coloring line 1-3 vivace
     std::vector<int> vecs;
     std::vector<int> chosenColor;
-    for (int i = 0; i < m_numVertices; i++){
+    for (int i = 0; i < m_numOuterVertices; i++){
         vecs.push_back(i);
         chosenColor.push_back(-1);
     }
 
+    std::vector<std::vector<int>> neighbours;
+    for(int i = 0; i < m_numOuterVertices; i++) {
+        std::vector<int> vNeighbours;
+        for (int j = 0; j < m_numOuterVertices; j++) {
+            if (i != j && adjacency.coeff(i, j) != 0) {
+                vNeighbours.push_back(j);
+            }
+        }
+        neighbours.push_back(vNeighbours);
+    }
+
     std::vector<std::vector<int>> colors;
     std::vector<int> amountOfColorsHad;
-    for (int i = 0; i < m_numVertices; i++) {
+    for (int i = 0; i < m_numOuterVertices; i++) {
         std::vector<int> vertexColors;
-        int colorAmount = int(adjacency->coeff(i, i) / minDegree) + 1;
+        int colorAmount = int( double(neighbours[i].size()) / minDegree);
+        if (colorAmount < 1) {
+            colorAmount=1;
+        }
         for(int j = 0; j < colorAmount; j++){
             vertexColors.push_back(j);
         }
@@ -1239,16 +1297,10 @@ void ProjDynSimulator::setup() {
         colors.push_back(vertexColors);
     }
 
-    std::vector<std::vector<int>> neighbours;
-    for(int i = 0; i < m_numVertices; i++) {
-        std::vector<int> vNeighbours;
-        for (int j = 0; j < m_numVertices; j++) {
-            if (i != j && adjacency->coeff(i, j) != 0) {
-                vNeighbours.push_back(j);
-            }
-        }
-        neighbours.push_back(vNeighbours);
-    }
+
+
+    std::cout << "vecs: " << vecs.size() << std::endl;
+    std::cout << "colorarrLen: " << chosenColor.size() << std::endl;
 
     //Graph coloring rest
     std::vector<int> vecsToRemove;
@@ -1271,7 +1323,7 @@ void ProjDynSimulator::setup() {
                 collision = collision && chosenColor[nv] != chosenColor[v];
             }
             if (!collision) { // line 10 to 12
-                std::cout << "no collisions" << std::endl;
+//                std::cout << "no collisions" << std::endl;
                 vecsToRemove.push_back(v);
                 for (int nv: vNeighbours){
                     colors[nv].erase(std::remove(colors[nv].begin(), colors[nv].end(),chosenColor[v]), colors[nv].end());
@@ -1291,6 +1343,9 @@ void ProjDynSimulator::setup() {
             }
         }
         count++;
+        if (count % 5) {
+            std::cout << vecs.size() << " left" << std::endl;
+        }
     }
     m_chosenColors = chosenColor;
     //VIVACE

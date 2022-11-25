@@ -491,7 +491,6 @@ namespace PD {
 
 		// The selection matrix computes the current deformation gradient w.r.t the current positions
 		// (i.e. multiplication of the current edges with the inverse of the original edge matrix)
-		m_selectionMatrix.setZero();
 		m_selectionMatrix.resize(3, numVertices);
 		for (int coord3d = 0; coord3d < 3; coord3d++) {
 			m_selectionMatrix.insert(coord3d, tets(tInd, 0)) = -(m_restEdgesInv(0, coord3d) + m_restEdgesInv(1, coord3d) + m_restEdgesInv(2, coord3d));
