@@ -26,6 +26,7 @@ SOFTWARE.
 #include <iostream>
 #include <omp.h>
 #include <chrono>
+#include <set>
 #include <limits>
 
 #include "ProjDynSimulator.h"
@@ -1205,77 +1206,83 @@ void ProjDynSimulator::setup() {
     std::cout << "Number of Constraints: " << m_constraints.size() << std::endl;
     std::cout << "Number of vertices: " << m_numVertices << std::endl;
 
-    Eigen::SparseMatrix<double> adjacency;
-    adjacency.resize(m_numVertices, m_numVertices);
-
-    auto numOfDeps = new Eigen::MatrixXd(1, m_numVertices);
-    numOfDeps->setOnes();
-
-//    std::vector<Eigen::SparseMatrix<double>> matrices;
-//    for(int i = 0; i < PROJ_DYN_NUM_THREADS; i++){
-//        matrices.push_back(Eigen::SparseMatrix<double>(adjacency));
-//    }
-
     std::cout << "started parallel adjacency building loop" << std::endl;
+
     auto start = high_resolution_clock::now();
-//    PROJ_DYN_PARALLEL_FOR
+    std::vector<Eigen::Triplet<int>> triplets;
+    triplets.reserve(m_constraints.size() * 3);
+
     for (auto c : m_constraints) {
-        PDSparseMatrixRM p = PDSparseMatrixRM (c->getSelectionMatrixTransposed());
-        for (int k=0; k<p.outerSize(); ++k)
-            for (PDSparseMatrixRM::InnerIterator it(p,k); it; ++it)
-            {
-                it.valueRef() = 1.0f;
+        PDSparseMatrixRM p = c->getSelectionMatrix();
+        std::vector<std::vector<int>> verts;
+        for (int k=0; k<p.outerSize(); ++k){
+            for (PDSparseMatrixRM::InnerIterator it(p,k); it; ++it) {
+                if (verts.size() <= it.row()){
+                    std::vector<int> n;
+                    verts.push_back(n);
+                }
+                verts[it.row()].push_back(it.col());
             }
-        auto adjacencyForThisConstraint = p * Eigen::SparseMatrix<double, Eigen::RowMajor>(p.transpose());
-        adjacency += adjacencyForThisConstraint;
+        }
+        for (auto v: verts) {
+            for (int i = 0; i < v.size(); i++) {
+                for(int j = 0; j < v.size(); j++) {
+                    triplets.emplace_back(Eigen::Triplet<int>(v[i], v[j], 1));
+                }
+            }
+        }
+//        auto adjacencyForThisConstraint = p * Eigen::SparseMatrix<double, Eigen::RowMajor>(p.transpose());
+//        adjacency += adjacencyForThisConstraint;
 //        matrices[omp_get_thread_num()].selfadjointView<Eigen::Upper>().rankUpdate(c->getSelectionMatrixTransposed());
     } // HERE
+    std::cout << "done with triplets" << std::endl;
+
+    Eigen::SparseMatrix<int> adjacency;
+    adjacency.resize(m_numVertices, m_numVertices);
+    adjacency.setFromTriplets(triplets.begin(), triplets.end());
+
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     std::cout << "finished parallel adjacency building loop time taken: " << duration.count()/1000000 << std::endl;
 
 
-//    for(int i = 0; i < PROJ_DYN_NUM_THREADS; i++){
-//        adjacency+= matrices[i];
-//    }
-
-//    adjacency.selfadjointView<Eigen::Lower>() = adjacency.selfadjointView<Eigen::Upper>();
-
-
-//    std::string name = "adjacency_armadillo.csv";
-//    std::ofstream file(name.c_str());
-//    for (int k=0; k < adjacency.outerSize(); ++k)
-//    {
-//        for (Eigen::SparseMatrix<double>::InnerIterator it(adjacency,k); it; ++it)
-//        {
-//            file << 1+it.row() << ","; // row index
-//            file << 1+it.col() << ","; // col index (here it is equal to k)
-//            file << "1" << "\n";
-//        }
-//    }
-//    file.flush();
-//    file.close();
+    std::string name = "adjacency_armadillo.csv";
+    std::ofstream file(name.c_str());
+    for (int k=0; k < adjacency.outerSize(); ++k)
+    {
+        for (Eigen::SparseMatrix<int>::InnerIterator it(adjacency,k); it; ++it)
+        {
+            file << 1+it.row() << ","; // row index
+            file << 1+it.col() << ","; // col index (here it is equal to k)
+            file << "1" << "\n";
+        }
+    }
+    file.flush();
+    file.close();
     std::cout << "done with adjacency matrix" << std::endl;
 
 
-    double minDegree = adjacency.diagonal().minCoeff();
-    if (minDegree < 1.0) {
-        minDegree = 1.0;
+    int minDegree = adjacency.diagonal().minCoeff();
+    int maxDegree = adjacency.diagonal().maxCoeff();
+    if (minDegree < 1) {
+        minDegree = 1;
     }
 
     // Graph coloring line 1-3 vivace
     std::vector<int> vecs;
     std::vector<int> chosenColor;
+    std::vector<int> finalColor;
     for (int i = 0; i < m_numOuterVertices; i++){
         vecs.push_back(i);
         chosenColor.push_back(-1);
+        finalColor.push_back(-1);
     }
 
     std::vector<std::vector<int>> neighbours;
     for(int i = 0; i < m_numOuterVertices; i++) {
         std::vector<int> vNeighbours;
         for (int j = 0; j < m_numOuterVertices; j++) {
-            if (i != j && adjacency.coeff(i, j) != 0) {
+            if (i != j && adjacency.coeff(i, j)) {
                 vNeighbours.push_back(j);
             }
         }
@@ -1286,67 +1293,111 @@ void ProjDynSimulator::setup() {
     std::vector<int> amountOfColorsHad;
     for (int i = 0; i < m_numOuterVertices; i++) {
         std::vector<int> vertexColors;
-        int colorAmount = int( double(neighbours[i].size()) / minDegree);
-        if (colorAmount < 1) {
-            colorAmount=1;
-        }
+        int colorAmount = maxDegree/minDegree;
         for(int j = 0; j < colorAmount; j++){
             vertexColors.push_back(j);
         }
-        amountOfColorsHad.push_back(colorAmount);
+        amountOfColorsHad.push_back(vertexColors[vertexColors.size()-1]);
         colors.push_back(vertexColors);
     }
+    int colorCount = amountOfColorsHad[0];
 
 
-
-    std::cout << "vecs: " << vecs.size() << std::endl;
     std::cout << "colorarrLen: " << chosenColor.size() << std::endl;
+    std::cout << "neighbour of num 0 should be 107: " << neighbours[0][0] << std::endl;
 
     //Graph coloring rest
     std::vector<int> vecsToRemove;
     int count = 0;
-    while(!vecs.empty() && count < 1000){
+    while(!vecs.empty() && count < 10000){
         // Tentative Coloring
         for (int v : vecs){
             int ind = rand() % colors[v].size(); // pick a random index from the possible colors
             chosenColor[v] = colors[v][ind]; // assign color
-
         }
-
 
         vecsToRemove.clear();
         // Conflict Resolution
         for (int v : vecs) {
             std::vector<int> vNeighbours = neighbours[v];
             bool  collision = false;
-            for (int nv: vNeighbours){
-                collision = collision && chosenColor[nv] != chosenColor[v];
+            for (int nv: vNeighbours) {
+                if (chosenColor[v] == chosenColor[nv]) {
+                    if (colors[nv].size() == 1 && colors[v].size() == 1 && v < nv) {
+                        colors[nv] = std::vector<int>();
+                    }
+                    collision = true;
+                    continue;
+                }
             }
             if (!collision) { // line 10 to 12
-//                std::cout << "no collisions" << std::endl;
                 vecsToRemove.push_back(v);
+                finalColor[v] = chosenColor[v];
                 for (int nv: vNeighbours){
-                    colors[nv].erase(std::remove(colors[nv].begin(), colors[nv].end(),chosenColor[v]), colors[nv].end());
+                    std::vector<int> newcol;
+                    for(int c: colors[nv]) {
+                        if (c != chosenColor[v]) {
+                           newcol.push_back(c);
+                        }
+                    }
+                    if (colors[nv].size() == 1){
+                        colors[nv] = std::vector<int>();
+                    } else {
+                        colors[nv] = newcol;
+                    }
+
                 }
             }
         }
 
-        for (int v : vecsToRemove){
-            vecs.erase(std::remove(vecs.begin(), vecs.end(),v), vecs.end());
+        std::vector<int> newVecs;
+
+        for(int v: vecs){
+            if (!std::count(vecsToRemove.begin(), vecsToRemove.end(), v)){
+                newVecs.push_back(v);
+            }
         }
+        vecs = newVecs;
 
         // Feed the Hungry
         for (int v: vecs){
             if(colors[v].empty()) {
-                colors[v].push_back(amountOfColorsHad[v] -1);
-                amountOfColorsHad[v] += 1;
+                std::cout << "color added: " << amountOfColorsHad[v] << std::endl;
+                int newColor = amountOfColorsHad[v] + 1;
+                colors[v].push_back(newColor);
+                amountOfColorsHad[v] = newColor;
             }
+
         }
         count++;
-        if (count % 5) {
+        if (count % 1000) {
             std::cout << vecs.size() << " left" << std::endl;
         }
     }
+    for (int v: vecs) {
+        std::cout << "chosen: " << chosenColor[v] << " colors left: " << colors[v].size() << "color: " << colors[v][0] << std::endl;
+        for (int nv : neighbours[v]) {
+            std::cout << chosenColor[nv] << " ";
+        }
+        std::cout << "\n";
+    }
+    // Validate graph coloring:
+    for (int i = 0; i < chosenColor.size(); i++){
+        std::vector<int> neigh = neighbours[i];
+        int chosenColorCurrent = chosenColor[i];
+        for (auto vert : neigh) {
+            if (chosenColor[vert] == chosenColorCurrent) {
+                std::cout << "COLLISION FOUND GRAPH COLORING INCORRECT" << std::endl;
+                std::cout << "chosen: " << chosenColor[i] << " colors left: " << colors[i].size() << "color: " << colors[i][0] << std::endl;
+                for (int nv : neighbours[i]) {
+                    std::cout << chosenColor[nv] << " ";
+                }
+                std::cout << "\n";
+                exit(0);
+            }
+        }
+    }
+
     m_chosenColors = chosenColor;
     //VIVACE
 
