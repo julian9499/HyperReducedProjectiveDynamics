@@ -1264,24 +1264,24 @@ void ProjDynSimulator::setup() {
 
     int minDegree = adjacency.diagonal().minCoeff();
     int maxDegree = adjacency.diagonal().maxCoeff();
-    if (minDegree < 1) {
-        minDegree = 1;
-    }
+    std::cout << "maximum degree: " << maxDegree << std::endl;
+    std::cout << "minimum degree: " << minDegree << std::endl;
+    std::cout << "average degree: " << adjacency.diagonal().mean() << std::endl;
 
     // Graph coloring line 1-3 vivace
     std::vector<int> vecs;
     std::vector<int> chosenColor;
     std::vector<int> finalColor;
-    for (int i = 0; i < m_numOuterVertices; i++){
+    for (int i = 0; i < m_numVertices; i++){
         vecs.push_back(i);
         chosenColor.push_back(-1);
         finalColor.push_back(-1);
     }
 
     std::vector<std::vector<int>> neighbours;
-    for(int i = 0; i < m_numOuterVertices; i++) {
+    for(int i = 0; i < m_numVertices; i++) {
         std::vector<int> vNeighbours;
-        for (int j = 0; j < m_numOuterVertices; j++) {
+        for (int j = 0; j < m_numVertices; j++) {
             if (i != j && adjacency.coeff(i, j)) {
                 vNeighbours.push_back(j);
             }
@@ -1291,20 +1291,18 @@ void ProjDynSimulator::setup() {
 
     std::vector<std::vector<int>> colors;
     std::vector<int> amountOfColorsHad;
-    for (int i = 0; i < m_numOuterVertices; i++) {
+    for (int i = 0; i < m_numVertices; i++) {
         std::vector<int> vertexColors;
-        int colorAmount = maxDegree/minDegree;
-        for(int j = 0; j < colorAmount; j++){
+        int colorAmount = neighbours[i].size()/minDegree;
+        for(int j = 0; j <= colorAmount; j++){
             vertexColors.push_back(j);
         }
         amountOfColorsHad.push_back(vertexColors[vertexColors.size()-1]);
         colors.push_back(vertexColors);
     }
-    int colorCount = amountOfColorsHad[0];
 
 
     std::cout << "colorarrLen: " << chosenColor.size() << std::endl;
-    std::cout << "neighbour of num 0 should be 107: " << neighbours[0][0] << std::endl;
 
     //Graph coloring rest
     std::vector<int> vecsToRemove;
@@ -1320,66 +1318,53 @@ void ProjDynSimulator::setup() {
         // Conflict Resolution
         for (int v : vecs) {
             std::vector<int> vNeighbours = neighbours[v];
-            bool  collision = false;
+            bool collision = false;
+            bool finalColorCollision = false;
+
             for (int nv: vNeighbours) {
                 if (chosenColor[v] == chosenColor[nv]) {
-                    if (colors[nv].size() == 1 && colors[v].size() == 1 && v < nv) {
-                        colors[nv] = std::vector<int>();
+                    if (chosenColor[v] == finalColor[nv]) {
+                        finalColorCollision = true;
                     }
                     collision = true;
-                    continue;
                 }
             }
-            if (!collision) { // line 10 to 12
+            if (!collision || !finalColorCollision) { // line 10 to 12
                 vecsToRemove.push_back(v);
                 finalColor[v] = chosenColor[v];
                 for (int nv: vNeighbours){
-                    std::vector<int> newcol;
-                    for(int c: colors[nv]) {
-                        if (c != chosenColor[v]) {
-                           newcol.push_back(c);
-                        }
-                    }
-                    if (colors[nv].size() == 1){
-                        colors[nv] = std::vector<int>();
-                    } else {
-                        colors[nv] = newcol;
-                    }
-
+                    colors[nv].erase(std::remove(colors[nv].begin(), colors[nv].end(), chosenColor[v]), colors[nv].end());
                 }
             }
         }
 
-        std::vector<int> newVecs;
-
-        for(int v: vecs){
-            if (!std::count(vecsToRemove.begin(), vecsToRemove.end(), v)){
-                newVecs.push_back(v);
-            }
-        }
-        vecs = newVecs;
+        for(int v: vecsToRemove){
+            vecs.erase(std::remove(vecs.begin(), vecs.end(), v), vecs.end());
+        } // Remove all Vecs in the vecsToRemoveVector
 
         // Feed the Hungry
         for (int v: vecs){
             if(colors[v].empty()) {
                 std::cout << "color added: " << amountOfColorsHad[v] << std::endl;
                 int newColor = amountOfColorsHad[v] + 1;
+                std::vector<int> finalNeighbourColors;
+                for (int nv : neighbours[v]){
+                        finalNeighbourColors.push_back(finalColor[nv]);
+                }
+                while(std::count(finalNeighbourColors.begin(), finalNeighbourColors.end(), newColor)){
+                    newColor++;
+                }
                 colors[v].push_back(newColor);
                 amountOfColorsHad[v] = newColor;
             }
 
         }
+
+        // Random counter
         count++;
-        if (count % 1000) {
+        if (count % 1000 == 0) {
             std::cout << vecs.size() << " left" << std::endl;
         }
-    }
-    for (int v: vecs) {
-        std::cout << "chosen: " << chosenColor[v] << " colors left: " << colors[v].size() << "color: " << colors[v][0] << std::endl;
-        for (int nv : neighbours[v]) {
-            std::cout << chosenColor[nv] << " ";
-        }
-        std::cout << "\n";
     }
     // Validate graph coloring:
     for (int i = 0; i < chosenColor.size(); i++){
@@ -1399,22 +1384,6 @@ void ProjDynSimulator::setup() {
     }
 
     m_chosenColors = chosenColor;
-    //VIVACE
-
-//    for (int i = 0; i < vecs.size(); i++) {
-//        std::cout << " " << chosenColor[vecs[i]] << std::endl;
-//    }
-
-
-
-//    std::cout << "length: " << Eigen::MatrixXd(*adjacency) << std::endl;
-//    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-//    std::string name = "adjacency.csv";
-//    std::ofstream file(name.c_str());
-//    file << Eigen::MatrixXd(*adjacency).format(CSVFormat);
-
-
-
 
 
 #ifndef EIGEN_DONT_PARALLELIZE

@@ -39,5 +39,8 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 target_sources(${PROJECT_NAME} PUBLIC ${SRC_FILES})
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/armadillo.obj
+file(GLOB MODELS
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.obj
+        )
+file(COPY ${MODELS}
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
