@@ -219,7 +219,7 @@ int main()
 {
 	// Depending on whatever your default working directory is and wherever this mesh
 	// file is, you will need to change this URL
-	std::string meshURL = "bunny.obj";
+	std::string meshURL = "armadillo.obj";
 
 	// Load a mesh using IGL
 	PD::PDPositions verts, velos;

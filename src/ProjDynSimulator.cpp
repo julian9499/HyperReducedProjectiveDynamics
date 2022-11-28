@@ -1210,7 +1210,7 @@ void ProjDynSimulator::setup() {
 
     auto start = high_resolution_clock::now();
     std::vector<Eigen::Triplet<int>> triplets;
-    triplets.reserve(m_constraints.size() * 3);
+    triplets.reserve(m_constraints.size() * 6);
 
     for (auto c : m_constraints) {
         PDSparseMatrixRM p = c->getSelectionMatrix();
@@ -1256,13 +1256,17 @@ void ProjDynSimulator::setup() {
             file << 1+it.col() << ","; // col index (here it is equal to k)
             file << "1" << "\n";
         }
+        file.flush();
     }
-    file.flush();
     file.close();
     std::cout << "done with adjacency matrix" << std::endl;
 
 
     int minDegree = adjacency.diagonal().minCoeff();
+    if (minDegree < 1) {
+        minDegree = 1;
+    }
+
     int maxDegree = adjacency.diagonal().maxCoeff();
     std::cout << "maximum degree: " << maxDegree << std::endl;
     std::cout << "minimum degree: " << minDegree << std::endl;
@@ -1272,16 +1276,16 @@ void ProjDynSimulator::setup() {
     std::vector<int> vecs;
     std::vector<int> chosenColor;
     std::vector<int> finalColor;
-    for (int i = 0; i < m_numVertices; i++){
+    for (int i = 0; i < m_numOuterVertices; i++){
         vecs.push_back(i);
         chosenColor.push_back(-1);
         finalColor.push_back(-1);
     }
 
     std::vector<std::vector<int>> neighbours;
-    for(int i = 0; i < m_numVertices; i++) {
+    for(int i = 0; i < m_numOuterVertices; i++) {
         std::vector<int> vNeighbours;
-        for (int j = 0; j < m_numVertices; j++) {
+        for (int j = 0; j < m_numOuterVertices; j++) {
             if (i != j && adjacency.coeff(i, j)) {
                 vNeighbours.push_back(j);
             }
@@ -1291,7 +1295,7 @@ void ProjDynSimulator::setup() {
 
     std::vector<std::vector<int>> colors;
     std::vector<int> amountOfColorsHad;
-    for (int i = 0; i < m_numVertices; i++) {
+    for (int i = 0; i < m_numOuterVertices; i++) {
         std::vector<int> vertexColors;
         int colorAmount = neighbours[i].size()/minDegree;
         for(int j = 0; j <= colorAmount; j++){
