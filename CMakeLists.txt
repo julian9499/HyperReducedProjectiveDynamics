@@ -16,6 +16,7 @@ include(libigl)
 
 # Enable the target igl::glfw
 igl_include(glfw)
+igl_include(imgui)
 
 if(MSVC)
     set(OpenMP_CXX_FLAGS "/fopenmp")
@@ -32,6 +33,7 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 #Link igl to project
 target_link_libraries(${PROJECT_NAME} PUBLIC igl::glfw)
+target_link_libraries(${PROJECT_NAME} PUBLIC igl::imgui)
 
 # Link openMP if found
 if(OpenMP_CXX_FOUND)

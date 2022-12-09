@@ -1349,7 +1349,6 @@ void ProjDynSimulator::setup() {
         // Feed the Hungry
         for (int v: vecs){
             if(colors[v].empty()) {
-                std::cout << "color added: " << amountOfColorsHad[v] << std::endl;
                 int newColor = amountOfColorsHad[v] + 1;
                 std::vector<int> finalNeighbourColors;
                 for (int nv : neighbours[v]){

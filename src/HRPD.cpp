@@ -28,6 +28,9 @@ SOFTWARE.
 #include "igl/readOBJ.h"
 #include "igl/opengl/glfw/Viewer.h"
 #include "igl/opengl/glfw/ViewerPlugin.h"
+#include "igl/opengl/glfw/imgui/ImGuiPlugin.h"
+#include "igl/opengl/glfw/imgui/ImGuiMenu.h"
+#include "igl/opengl/glfw/imgui/ImGuiHelpers.h"
 
 /* HRPD include files */
 #include "ProjDynTypeDef.h"
@@ -40,27 +43,27 @@ ProjDynSimulator* initSimulator(PD::PDPositions verts, PD::PDTriangles faces, PD
 	// as well as a few reduction and simulation parameters, which are explained
 	// in the _README.txt
 	double timeStep = 16;
-	int numberSamplesForVertexPosSubspace = 150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
+	int numberSamplesForVertexPosSubspace = 0;//150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
 	double radiusMultiplierForVertexPosSubspace = 1.1; // The larger this number, the larger the support of the base functions.
 	int dimensionOfConstraintProjectionsSubspace = 120; // The constraint projections subspace will be constructed to be twice that size and then condensed via an SVD
 	double radiusMultiplierForConstraintProjectionsSubspace = 2.2;
-	int numberSampledConstraints = 1000; // Number of constraints that will be evaluated each iteration
+	int numberSampledConstraints = 0;//1000; // Number of constraints that will be evaluated each iteration
 	ProjDynSimulator* sim =
 		new ProjDynSimulator(faces, verts, velos, timeStep, 
 			numberSamplesForVertexPosSubspace, radiusMultiplierForVertexPosSubspace,
 			dimensionOfConstraintProjectionsSubspace, radiusMultiplierForConstraintProjectionsSubspace,
 			numberSampledConstraints, 
-			2, 0, true, meshURL,
+			2, 0, false, meshURL,
 			0., 3);
 
 	// For the simulation to be meaningful we need some sorts of constraints
 	// The following method adds volume preservation constraints to all tets
-    sim->addTetStrain(0.00051, 1.f, 1.f);
-//    sim->addEdgeSprings(0.051, 1.f, 1.f);
+//    sim->addTetStrain(0.00051, 1.f, 1.f);
+    sim->addEdgeSprings(0.051, 1.f, 1.f);
 
 	// We add gravity and floor friction+repulsion to the simulation
 	sim->addGravity(0.0001);
-	sim->addFloor(1, -2, 1);
+	sim->addFloor(1, 0, 1);
 	sim->setFrictionCoefficient(0.5, 0.05);
 
 	// The call to the setup function computes the subspaces for vertex
@@ -219,7 +222,7 @@ int main()
 {
 	// Depending on whatever your default working directory is and wherever this mesh
 	// file is, you will need to change this URL
-	std::string meshURL = "armadillo.obj";
+	std::string meshURL = "sheet_9_verts.obj";
 
 	// Load a mesh using IGL
 	PD::PDPositions verts, velos;
@@ -238,12 +241,11 @@ int main()
 		SimViewer simViewer(verts, faces, velos, meshURL, numIterations);
         std::vector<int> sorted = simViewer.m_chosenColors;
         std::sort(sorted.begin(), sorted.end());
-        std::cout << sorted[sorted.size()-1] << std::endl;
-        std::cout << simViewer.m_chosenColors.size() << std::endl;
-        std::cout << simViewer.m_verts.rows() << std::endl;
+        std::cout << sorted[sorted.size()-1] + 1 << std::endl;
+        int amountOfColors = sorted[sorted.size()-1] + 1;
         Eigen::MatrixXd C;
         C.resize( simViewer.m_verts.rows(), 3);
-        std::vector<std::vector<double>> colors {
+        std::vector<std::vector<double>> rainbow_colors {
                 { 0.8588235294117647, 0.5803921568627451, 0.20784313725490197},
                 { 0.3411764705882353, 0.40784313725490196, 0.8352941176470589},
                 { 0.5294117647058824, 0.7333333333333333, 0.21568627450980393},
@@ -285,22 +287,128 @@ int main()
                 { 0.6352941176470588, 0.34509803921568627, 0.16862745098039217},
                 { 0.9137254901960784, 0.5529411764705883, 0.5803921568627451},
         };
+        
+        std::vector<std::vector<double>> hsl_colors = {
+                {1.0, 0.25098039215686274, 0.25098039215686274},
+                        {1.0, 0.792156862745098, 0.7490196078431373},
+                        {0.2, 0.10196078431372549, 0.0},
+                        {0.8980392156862745, 0.5607843137254902, 0.2235294117647059},
+                        {0.45098039215686275, 0.3764705882352941, 0.0},
+                        {0.7019607843137254, 0.6705882352941176, 0.5254901960784314},
+                        {0.8980392156862745, 0.9019607843137255, 0.2235294117647059},
+                        {0.0, 0.7019607843137254, 0.11764705882352941},
+                        {0.45098039215686275, 0.9019607843137255, 0.6745098039215687},
+                        {0.08627450980392157, 0.34901960784313724, 0.2627450980392157},
+                        {0.45098039215686275, 0.8235294117647058, 0.9019607843137255},
+                        {0.050980392156862744, 0.12549019607843137, 0.2},
+                        {0.34901960784313724, 0.4666666666666667, 0.7019607843137254},
+                        {0.23921568627450981, 0.23921568627450981, 0.9490196078431372},
+                        {0.30196078431372547, 0.10196078431372549, 0.4},
+                        {1.0, 0.7490196078431373, 0.9568627450980393},
+                        {0.8509803921568627, 0.21176470588235294, 0.6392156862745098},
+                        {0.45098039215686275, 0.0, 0.14901960784313725}
+        };
+        std::vector<std::vector<double>>& used_color = rainbow_colors;
 
         for(int i = 0; i < simViewer.m_verts.rows(); i++) {
             int chosenColor = simViewer.m_chosenColors[i];
-            C(i, 0) = colors[chosenColor][0];
-            C(i, 1) = colors[chosenColor][1];
-            C(i, 2) = colors[chosenColor][2];
+            C(i, 0) = used_color[chosenColor][0];
+            C(i, 1) = used_color[chosenColor][1];
+            C(i, 2) = used_color[chosenColor][2];
         }
 
-        std::cout << verts.rows() << std::endl;
-
-
 		igl::opengl::glfw::Viewer viewer;
+        igl::opengl::glfw::imgui::ImGuiPlugin plugin;
+        viewer.plugins.push_back(&plugin);
+        igl::opengl::glfw::imgui::ImGuiMenu menu;
+        plugin.widgets.push_back(&menu);
+
 		viewer.data().set_mesh(verts, faces);
-        viewer.data().set_colors(C);
+        viewer.data().add_points(verts, C);
+//        viewer.data().set_colors(C);
 		viewer.core().is_animating = true;
 		viewer.plugins.push_back(&simViewer);
+        // Add content to the default menu window
+
+        bool color_verts = false;
+        bool color_points = true;
+        bool draw_selected_color = true;
+
+
+        menu.callback_draw_viewer_menu = [&]()
+        {
+            // Draw parent menu content
+            menu.draw_viewer_menu();
+
+            // Add new group
+            if (ImGui::CollapsingHeader("Change", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+
+                ImGui::Checkbox("color vertices", &color_verts);
+                ImGui::Checkbox("color points", &color_points);
+                ImGui::Checkbox("Only draw selected color", &draw_selected_color);
+
+                // We can also use a std::vector<std::string> defined dynamically
+                static std::vector<std::string> choices;
+                static int selectedColor = 0;
+
+                if (amountOfColors != (int) choices.size())
+                {
+                    choices.resize(amountOfColors);
+                    for (int i = 0; i < amountOfColors; ++i)
+                        choices[i] = std::to_string(i);;
+                    if (selectedColor >= amountOfColors)
+                        selectedColor = amountOfColors - 1;
+                }
+                ImGui::Combo("selectedColor", &selectedColor, choices);
+
+
+                // Expose an enumeration type
+                enum ColorPattern { Rainbow=0, HSL };
+                static ColorPattern color = Rainbow;
+                ImGui::Combo("Color pattern", (int *)(&color), "Rainbow\0Hsl\0\0");
+                // Add a button
+                if (ImGui::Button("set Color", ImVec2(-1,0)))
+                {
+                    switch (color) {
+                        case Rainbow:
+                            used_color = rainbow_colors;
+                            break;
+                        case HSL:
+                            used_color = hsl_colors;
+                            break;
+                    }
+
+                    for(int i = 0; i < simViewer.m_verts.rows(); i++) {
+                        int chosenColor = simViewer.m_chosenColors[i];
+
+                        if ((draw_selected_color && chosenColor == selectedColor) || !draw_selected_color) {
+                            C(i, 0) = used_color[chosenColor][0];
+                            C(i, 1) = used_color[chosenColor][1];
+                            C(i, 2) = used_color[chosenColor][2];
+                        } else {
+                            C(i, 0) = used_color[chosenColor][0];
+                            C(i, 1) = used_color[chosenColor][1];
+                            C(i, 2) = used_color[chosenColor][2];
+                        }
+
+                    }
+                    viewer.data().clear_points();
+                    viewer.data().clear();
+                    viewer.data().set_mesh(verts, faces);
+                    if (color_verts){
+                        viewer.data().set_colors(C);
+                    }
+                    if (color_points) {
+                        viewer.data().add_points(verts, C);
+                    }
+                }
+
+
+
+
+            }
+        };
 		viewer.init_plugins();
 		viewer.launch();
 	}
