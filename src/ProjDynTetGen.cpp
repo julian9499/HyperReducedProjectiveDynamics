@@ -24,6 +24,7 @@ SOFTWARE.
 ********************************************************************************
 */
 #include <iostream>
+#include <filesystem>
 
 #include "ProjDynTetGen.h"
 
@@ -188,11 +189,32 @@ bool TetGen::tetrahedralizeMesh(PDPositions& verts, PDTriangles& tris, PDPositio
 		}
 
 		nodeFile.close();
+        tetsFile.close();
 	}
 	else {
 		std::cout << "Error: Couldn't find .ele (tet) file " << std::endl;
 		return false;
 	}
+    std::vector<std::string> filenames = {
+            "temp.1.edge",
+            "temp.1.ele",
+            "temp.1.face",
+            "temp.1.node",
+            "temp.poly"
+    };
+    for (auto filename : filenames) {
+        try {
+            if (std::filesystem::remove(filename))
+                std::cout << "file " << filename << " deleted.\n";
+            else
+                std::cout << "file " << filename << " not found.\n";
+        }
+        catch(const std::filesystem::filesystem_error& err) {
+            std::cout << "filesystem error: " << err.what() << '\n';
+        }
+    }
+
+
 
 	return true;
 }

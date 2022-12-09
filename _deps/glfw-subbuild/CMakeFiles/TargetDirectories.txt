@@ -1,0 +1,3 @@
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/glfw-populate.dir
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/ALL_BUILD.dir
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/ZERO_CHECK.dir

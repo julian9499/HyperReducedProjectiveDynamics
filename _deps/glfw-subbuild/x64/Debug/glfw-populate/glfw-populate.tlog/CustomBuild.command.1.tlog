@@ -1,0 +1,150 @@
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/tmp/glfw-populate-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-DOWNLOAD.RULE
+setlocal
+cd C:\Users\julli\git\HyperReducedProjectiveDynamics\_deps
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/tmp/glfw-populate-gitclone.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-UPDATE.RULE
+setlocal
+cd C:\Users\julli\git\HyperReducedProjectiveDynamics\_deps\glfw-src
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/tmp/glfw-populate-gitupdate.cmake
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-CONFIGURE.RULE
+setlocal
+cd C:\Users\julli\git\HyperReducedProjectiveDynamics\_deps\glfw-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-BUILD.RULE
+setlocal
+cd C:\Users\julli\git\HyperReducedProjectiveDynamics\_deps\glfw-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-INSTALL.RULE
+setlocal
+cd C:\Users\julli\git\HyperReducedProjectiveDynamics\_deps\glfw-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\E4B1FAEE5CDFA339795E32A1E6091A2D\GLFW-POPULATE-TEST.RULE
+setlocal
+cd C:\Users\julli\git\HyperReducedProjectiveDynamics\_deps\glfw-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\AB10CFFB61BD4724B55EA7F5E88F9908\GLFW-POPULATE-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/Debug/glfw-populate-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/glfw-populate-prefix/src/glfw-populate-stamp/Debug/glfw-populate-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKEFILES\9DF35672F85BCE0885090524B9C1734D\GLFW-POPULATE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLFW-SUBBUILD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild -BC:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild --check-stamp-file C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

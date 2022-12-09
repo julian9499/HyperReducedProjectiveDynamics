@@ -176,6 +176,10 @@ namespace PD {
 
         std::vector<int> getChosenColors();
 
+        long getAdjacencyTiming();
+
+        long getColoringTiming();
+
     private:
 		PDScalar m_initPosNorm;
 
@@ -430,6 +434,8 @@ namespace PD {
 		/* Count of frames (full simulation steps) since the start of the simulation */
 		int m_frameCount;
         std::vector<int> m_chosenColors;
+        long m_adjacencyDurationMilliSeconds;
+        long m_coloringDurationMilliSeconds;
 
 
         PDScalar m_lastRHSNorm = 0;
@@ -443,7 +449,10 @@ namespace PD {
 		PDMatrix m_rhsEvalMat;
 		PDVector m_curTempVec;
 #endif
-	};
+
+        void colorGraph();
+
+    };
 
 	struct SparseEntry {
 		unsigned int i, j;

@@ -28,6 +28,7 @@ SOFTWARE.
 #include <chrono>
 #include <set>
 #include <limits>
+#include <filesystem>
 
 #include "ProjDynSimulator.h"
 #include "ProjDynConstraints.h"
@@ -243,6 +244,14 @@ PDPositions& ProjDynSimulator::getVelocities()
 
 std::vector<int> ProjDynSimulator::getChosenColors() {
     return m_chosenColors;
+}
+
+long ProjDynSimulator::getAdjacencyTiming() {
+    return m_adjacencyDurationMilliSeconds;
+}
+
+long ProjDynSimulator::getColoringTiming() {
+    return m_coloringDurationMilliSeconds;
 }
 
 void PD::ProjDynSimulator::recomputeWeightedForces() {
@@ -1198,19 +1207,17 @@ void PD::ProjDynSimulator::initRHSInterpolGroup(RHSInterpolationGroup& g, std::v
 	g.initInterpolation(m_numVertices, samples, m_baseFunctionsTransposedSparse);
 }
 
-void ProjDynSimulator::setup() {
-	std::cout << "Setting simulation..." << std::endl;
 
+void ProjDynSimulator::colorGraph() {
     // VIVACE
-
     std::cout << "Number of Constraints: " << m_constraints.size() << std::endl;
     std::cout << "Number of vertices: " << m_numVertices << std::endl;
 
     std::cout << "started parallel adjacency building loop" << std::endl;
 
-    auto start = high_resolution_clock::now();
+    auto startAdjacency = high_resolution_clock::now();
     std::vector<Eigen::Triplet<int>> triplets;
-    triplets.reserve(m_constraints.size() * 6);
+    triplets.reserve(m_constraints.size() * 50);
 
     for (auto c : m_constraints) {
         PDSparseMatrixRM p = c->getSelectionMatrix();
@@ -1231,35 +1238,33 @@ void ProjDynSimulator::setup() {
                 }
             }
         }
-//        auto adjacencyForThisConstraint = p * Eigen::SparseMatrix<double, Eigen::RowMajor>(p.transpose());
-//        adjacency += adjacencyForThisConstraint;
-//        matrices[omp_get_thread_num()].selfadjointView<Eigen::Upper>().rankUpdate(c->getSelectionMatrixTransposed());
     } // HERE
-    std::cout << "done with triplets" << std::endl;
+    std::cout << triplets.size() << std::endl;
+
 
     Eigen::SparseMatrix<int> adjacency;
     adjacency.resize(m_numVertices, m_numVertices);
     adjacency.setFromTriplets(triplets.begin(), triplets.end());
+    std::destroy(triplets.begin(), triplets.end());
 
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    std::cout << "finished parallel adjacency building loop time taken: " << duration.count()/1000000 << std::endl;
+    auto stopAdjacency = high_resolution_clock::now();
 
 
-    std::string name = "adjacency_armadillo.csv";
-    std::ofstream file(name.c_str());
-    for (int k=0; k < adjacency.outerSize(); ++k)
-    {
-        for (Eigen::SparseMatrix<int>::InnerIterator it(adjacency,k); it; ++it)
+    std::string name = m_meshURL +"_adjacencyTriplets.csv";
+    if (!std::filesystem::exists(name)){
+        std::ofstream file(name.c_str());
+        for (int k=0; k < adjacency.outerSize(); ++k)
         {
-            file << 1+it.row() << ","; // row index
-            file << 1+it.col() << ","; // col index (here it is equal to k)
-            file << "1" << "\n";
+            for (Eigen::SparseMatrix<int>::InnerIterator it(adjacency,k); it; ++it)
+            {
+                file << 1+it.row() << ","; // row index
+                file << 1+it.col() << ","; // col index (here it is equal to k)
+                file << "1" << "\n";
+            }
+            file.flush();
         }
-        file.flush();
+        file.close();
     }
-    file.close();
-    std::cout << "done with adjacency matrix" << std::endl;
 
 
     int minDegree = adjacency.diagonal().minCoeff();
@@ -1276,16 +1281,16 @@ void ProjDynSimulator::setup() {
     std::vector<int> vecs;
     std::vector<int> chosenColor;
     std::vector<int> finalColor;
-    for (int i = 0; i < m_numOuterVertices; i++){
+    for (int i = 0; i < m_numVertices; i++){
         vecs.push_back(i);
         chosenColor.push_back(-1);
         finalColor.push_back(-1);
     }
 
     std::vector<std::vector<int>> neighbours;
-    for(int i = 0; i < m_numOuterVertices; i++) {
+    for(int i = 0; i < m_numVertices; i++) {
         std::vector<int> vNeighbours;
-        for (int j = 0; j < m_numOuterVertices; j++) {
+        for (int j = 0; j < m_numVertices; j++) {
             if (i != j && adjacency.coeff(i, j)) {
                 vNeighbours.push_back(j);
             }
@@ -1295,7 +1300,7 @@ void ProjDynSimulator::setup() {
 
     std::vector<std::vector<int>> colors;
     std::vector<int> amountOfColorsHad;
-    for (int i = 0; i < m_numOuterVertices; i++) {
+    for (int i = 0; i < m_numVertices; i++) {
         std::vector<int> vertexColors;
         int colorAmount = neighbours[i].size()/minDegree;
         for(int j = 0; j <= colorAmount; j++){
@@ -1306,7 +1311,7 @@ void ProjDynSimulator::setup() {
     }
 
 
-    std::cout << "colorarrLen: " << chosenColor.size() << std::endl;
+    auto startColoring = high_resolution_clock::now();
 
     //Graph coloring rest
     std::vector<int> vecsToRemove;
@@ -1352,7 +1357,7 @@ void ProjDynSimulator::setup() {
                 int newColor = amountOfColorsHad[v] + 1;
                 std::vector<int> finalNeighbourColors;
                 for (int nv : neighbours[v]){
-                        finalNeighbourColors.push_back(finalColor[nv]);
+                    finalNeighbourColors.push_back(finalColor[nv]);
                 }
                 while(std::count(finalNeighbourColors.begin(), finalNeighbourColors.end(), newColor)){
                     newColor++;
@@ -1362,13 +1367,9 @@ void ProjDynSimulator::setup() {
             }
 
         }
-
-        // Random counter
-        count++;
-        if (count % 1000 == 0) {
-            std::cout << vecs.size() << " left" << std::endl;
-        }
     }
+    auto stopColoring = high_resolution_clock::now();
+
     // Validate graph coloring:
     for (int i = 0; i < chosenColor.size(); i++){
         std::vector<int> neigh = neighbours[i];
@@ -1387,7 +1388,16 @@ void ProjDynSimulator::setup() {
     }
 
     m_chosenColors = chosenColor;
+    std::cout << duration_cast<milliseconds>(stopColoring - startColoring).count() << std::endl;
+    m_adjacencyDurationMilliSeconds = duration_cast<milliseconds>(stopAdjacency - startAdjacency).count();
+    m_coloringDurationMilliSeconds = duration_cast<milliseconds>(stopColoring - startColoring).count();
 
+}
+
+void ProjDynSimulator::setup() {
+	std::cout << "Setting simulation..." << std::endl;
+
+    colorGraph();
 
 #ifndef EIGEN_DONT_PARALLELIZE
 	Eigen::setNbThreads(PROJ_DYN_NUM_THREADS);

@@ -43,30 +43,33 @@ ProjDynSimulator* initSimulator(PD::PDPositions verts, PD::PDTriangles faces, PD
 	// as well as a few reduction and simulation parameters, which are explained
 	// in the _README.txt
 	double timeStep = 16;
-	int numberSamplesForVertexPosSubspace = 0;//150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
+	int numberSamplesForVertexPosSubspace = 150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
 	double radiusMultiplierForVertexPosSubspace = 1.1; // The larger this number, the larger the support of the base functions.
 	int dimensionOfConstraintProjectionsSubspace = 120; // The constraint projections subspace will be constructed to be twice that size and then condensed via an SVD
 	double radiusMultiplierForConstraintProjectionsSubspace = 2.2;
-	int numberSampledConstraints = 0;//1000; // Number of constraints that will be evaluated each iteration
+	int numberSampledConstraints = 1000; // Number of constraints that will be evaluated each iteration
 	ProjDynSimulator* sim =
 		new ProjDynSimulator(faces, verts, velos, timeStep, 
 			numberSamplesForVertexPosSubspace, radiusMultiplierForVertexPosSubspace,
 			dimensionOfConstraintProjectionsSubspace, radiusMultiplierForConstraintProjectionsSubspace,
 			numberSampledConstraints, 
-			2, 0, false, meshURL,
+			2, 0, true, meshURL,
 			0., 3);
 
-	// For the simulation to be meaningful we need some sorts of constraints
-	// The following method adds volume preservation constraints to all tets
-//    sim->addTetStrain(0.00051, 1.f, 1.f);
-    sim->addEdgeSprings(0.051, 1.f, 1.f);
 
 	// We add gravity and floor friction+repulsion to the simulation
 	sim->addGravity(0.0001);
 	sim->addFloor(1, 0, 1);
 	sim->setFrictionCoefficient(0.5, 0.05);
 
-	// The call to the setup function computes the subspaces for vertex
+
+    // For the simulation to be meaningful we need some sorts of constraints
+    // The following method adds volume preservation constraints to all tets
+    sim->addTetStrain(0.00051, 1.f, 1.f);
+//    sim->addEdgeSprings(0.051, 1.f, 1.f);
+
+
+    // The call to the setup function computes the subspaces for vertex
 	// positions and constraint projections and factorizes all linear systems
 	// for local and global steps
 	sim->setup();
@@ -94,11 +97,15 @@ public:
     std::vector<int> m_chosenColors;
 	bool m_isGripping = false;
 	bool m_toggleStiff = false;
-	bool m_toggleSlowmo = false;
+    bool m_toggleSlowmo = false;
+    bool m_toggleTime = false;
 	int m_numIterations;
 	int m_numVertices;
+    long m_adjacencyTiming;
+    long m_coloringTiming;
 
-	SimViewer(PDPositions& verts, PDTriangles& faces, PDPositions& velos, std::string url, int numIterations) :
+
+    SimViewer(PDPositions& verts, PDTriangles& faces, PDPositions& velos, std::string url, int numIterations) :
 		m_verts(verts),
 		m_faces(faces),
 		m_velos(velos),
@@ -111,6 +118,8 @@ public:
 		m_numIterations = numIterations;
 		m_numVertices = m_verts.rows();
         m_chosenColors = m_sim->getChosenColors();
+        m_adjacencyTiming = m_sim->getAdjacencyTiming();
+        m_coloringTiming = m_sim->getColoringTiming();
 
 		/* The following is specific to the armadillo.obj mesh, it's a list of vertices on the
 		   back, on which the mesh is "hung up" when the user presses 3.
@@ -131,7 +140,7 @@ public:
 	in a high-performance setting, instead of passing them like this.
 	*/
 	bool pre_draw() {
-		if (m_sim) {
+		if (m_sim && !m_toggleTime) {
 			m_simTimer.startStopWatch();
 			m_sim->step(m_numIterations);
 			m_simTimer.stopStopWatch();
@@ -208,6 +217,13 @@ public:
 			m_toggleStiff = false;
 			m_toggleSlowmo = false;
 		}
+        else if (key == 55) {
+            // Pause
+            if (m_sim) {
+                m_toggleTime = !m_toggleTime;
+            }
+
+        }
 		return false;
 	}
 
@@ -222,7 +238,7 @@ int main()
 {
 	// Depending on whatever your default working directory is and wherever this mesh
 	// file is, you will need to change this URL
-	std::string meshURL = "sheet_9_verts.obj";
+	std::string meshURL = "armadillo.obj";
 
 	// Load a mesh using IGL
 	PD::PDPositions verts, velos;
@@ -244,7 +260,8 @@ int main()
         std::cout << sorted[sorted.size()-1] + 1 << std::endl;
         int amountOfColors = sorted[sorted.size()-1] + 1;
         Eigen::MatrixXd C;
-        C.resize( simViewer.m_verts.rows(), 3);
+        C.resize( verts.rows(), 3);
+        Eigen::MatrixXd chosenPoints;
         std::vector<std::vector<double>> rainbow_colors {
                 { 0.8588235294117647, 0.5803921568627451, 0.20784313725490197},
                 { 0.3411764705882353, 0.40784313725490196, 0.8352941176470589},
@@ -310,29 +327,34 @@ int main()
         };
         std::vector<std::vector<double>>& used_color = rainbow_colors;
 
-        for(int i = 0; i < simViewer.m_verts.rows(); i++) {
+        for(int i = 0; i < verts.rows(); i++) {
             int chosenColor = simViewer.m_chosenColors[i];
             C(i, 0) = used_color[chosenColor][0];
             C(i, 1) = used_color[chosenColor][1];
             C(i, 2) = used_color[chosenColor][2];
         }
 
+
+
 		igl::opengl::glfw::Viewer viewer;
         igl::opengl::glfw::imgui::ImGuiPlugin plugin;
         viewer.plugins.push_back(&plugin);
         igl::opengl::glfw::imgui::ImGuiMenu menu;
         plugin.widgets.push_back(&menu);
+        float r = 1.0;
+        float g = 1.0;
+        float b = 0.0;
 
 		viewer.data().set_mesh(verts, faces);
-        viewer.data().add_points(verts, C);
-//        viewer.data().set_colors(C);
-		viewer.core().is_animating = true;
+        viewer.data().uniform_colors(Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b));
+        viewer.core().is_animating = true;
+        viewer.data().set_colors(C);
 		viewer.plugins.push_back(&simViewer);
         // Add content to the default menu window
 
-        bool color_verts = false;
-        bool color_points = true;
-        bool draw_selected_color = true;
+        bool color_verts = true;
+        bool color_points = false;
+        bool draw_selected_color = false;
 
 
         menu.callback_draw_viewer_menu = [&]()
@@ -341,7 +363,7 @@ int main()
             menu.draw_viewer_menu();
 
             // Add new group
-            if (ImGui::CollapsingHeader("Change", ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::CollapsingHeader("Change coloring", ImGuiTreeNodeFlags_DefaultOpen))
             {
 
                 ImGui::Checkbox("color vertices", &color_verts);
@@ -379,28 +401,39 @@ int main()
                             break;
                     }
 
-                    for(int i = 0; i < simViewer.m_verts.rows(); i++) {
+
+                    int count = std::count(simViewer.m_chosenColors.begin(), simViewer.m_chosenColors.end(), selectedColor);
+                    if  (draw_selected_color){
+                        chosenPoints.resize( count, 3);
+                    } else {
+                        chosenPoints.resize( verts.rows(), 3);
+                    }
+                    count = 0;
+                    for(int i = 0; i < verts.rows(); i++) {
                         int chosenColor = simViewer.m_chosenColors[i];
 
                         if ((draw_selected_color && chosenColor == selectedColor) || !draw_selected_color) {
                             C(i, 0) = used_color[chosenColor][0];
                             C(i, 1) = used_color[chosenColor][1];
                             C(i, 2) = used_color[chosenColor][2];
+                            chosenPoints.row(count) = simViewer.m_sim->getPositions().row(i);
+                            count += 1;
                         } else {
-                            C(i, 0) = used_color[chosenColor][0];
-                            C(i, 1) = used_color[chosenColor][1];
-                            C(i, 2) = used_color[chosenColor][2];
+                            C(i, 0) = 1.0;
+                            C(i, 1) = 1.0;
+                            C(i, 2) = 0.0;
                         }
-
                     }
                     viewer.data().clear_points();
                     viewer.data().clear();
-                    viewer.data().set_mesh(verts, faces);
+                    viewer.data().uniform_colors(Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b));
+
+                    viewer.data().set_mesh(simViewer.m_sim->getPositions().block(0,0,numVertices,3), faces);
                     if (color_verts){
                         viewer.data().set_colors(C);
                     }
                     if (color_points) {
-                        viewer.data().add_points(verts, C);
+                        viewer.data().add_points(chosenPoints, Eigen::RowVector3d(used_color[selectedColor][0],used_color[selectedColor][1],used_color[selectedColor][2]));
                     }
                 }
 
@@ -408,6 +441,23 @@ int main()
 
 
             }
+        };
+        // Draw additional windows
+        menu.callback_draw_custom_window = [&]()
+        {
+            // Define next window position + size
+            ImGui::SetNextWindowPos(ImVec2(180.f * menu.menu_scaling(), 10), true);
+            ImGui::SetNextWindowSize(ImVec2(300, 100), true);
+            ImGui::Begin(
+                    "statistics", nullptr,
+                    ImGuiWindowFlags_NoSavedSettings
+            );
+
+            ImGui::Text("Time taken to build adjacency matrix (ms): %ld", simViewer.m_adjacencyTiming);
+            ImGui::Text("Time taken to color the graph (ms): %ld", simViewer.m_coloringTiming);
+            ImGui::Text("Amount of colors: %d", amountOfColors);
+
+            ImGui::End();
         };
 		viewer.init_plugins();
 		viewer.launch();

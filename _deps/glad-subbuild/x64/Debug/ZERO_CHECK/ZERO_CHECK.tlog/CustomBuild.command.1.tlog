@@ -1,0 +1,10 @@
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\GLAD-SUBBUILD\CMAKEFILES\E14EBC647FA0A90A495391BBA0CC71B7\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glad-subbuild -BC:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glad-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glad-subbuild/glad-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

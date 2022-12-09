@@ -1,0 +1,10 @@
+^C:\USERS\JULLI\GIT\HYPERREDUCEDPROJECTIVEDYNAMICS\_DEPS\LIBIGL-SUBBUILD\CMAKEFILES\FCE678CC6431F5DA3F2877946376F100\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/libigl-subbuild -BC:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/libigl-subbuild --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/libigl-subbuild/libigl-populate.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

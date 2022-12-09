@@ -1,0 +1,14 @@
+# Target labels
+ glfw-populate
+# Source files and their labels
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/glfw-populate
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/9df35672f85bce0885090524b9c1734d/glfw-populate.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/ab10cffb61bd4724b55ea7f5e88f9908/glfw-populate-complete.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-build.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-configure.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-download.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-install.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-mkdir.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-patch.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-test.rule
+C:/Users/julli/git/HyperReducedProjectiveDynamics/_deps/glfw-subbuild/CMakeFiles/e4b1faee5cdfa339795e32a1e6091a2d/glfw-populate-update.rule
