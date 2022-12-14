@@ -38,3 +38,8 @@ release/armadillo.obj release/CMakeCache.txt release/CMakeFiles release/cmake_in
 cmake-build-debug/build.ninja cmake-build-debug/CMakeCache.txt cmake-build-debug/CMakeFiles cmake-build-debug/cmake_install.cmake cmake-build-debug/_deps cmake-build-debug/Testing
 temp/CUDAMatrixVectorMult.cpp temp/CUDAMatrixVectorMult.h temp/doubleToFloatDeviceCpy.cuh
 cmake-build*
+_deps
+cmake-build-debug
+cmake-build-release
+cmake-build-relwithdebinfo
+CMakeFiles
