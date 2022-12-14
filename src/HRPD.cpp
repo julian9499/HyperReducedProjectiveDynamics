@@ -140,7 +140,7 @@ public:
 	in a high-performance setting, instead of passing them like this.
 	*/
 	bool pre_draw() {
-		if (m_sim && !m_toggleTime) {
+		if (m_sim) {
 			m_simTimer.startStopWatch();
 			m_sim->step(m_numIterations);
 			m_simTimer.stopStopWatch();
@@ -217,13 +217,6 @@ public:
 			m_toggleStiff = false;
 			m_toggleSlowmo = false;
 		}
-        else if (key == 55) {
-            // Pause
-            if (m_sim) {
-                m_toggleTime = !m_toggleTime;
-            }
-
-        }
 		return false;
 	}
 
@@ -258,9 +251,6 @@ int main()
         std::vector<int> sorted = simViewer.m_chosenColors;
         std::sort(sorted.begin(), sorted.end());
         std::cout << sorted[sorted.size()-1] + 1 << std::endl;
-        for (auto i: simViewer.m_chosenColors){
-            std::cout << i << ", ";
-        }
         std::cout << std::endl;
         int amountOfColors = sorted[sorted.size()-1] + 1;
         Eigen::MatrixXd C;
@@ -429,15 +419,17 @@ int main()
                         }
                     }
                     viewer.data().clear_points();
-                    viewer.data().clear();
+//                    viewer.data().clear();
                     viewer.data().uniform_colors(Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b));
 
                     viewer.data().set_mesh(simViewer.m_sim->getPositions().block(0,0,numVertices,3), faces);
                     if (color_verts){
                         viewer.data().set_colors(C);
                     }
-                    if (color_points) {
+                    if (color_points && draw_selected_color) {
                         viewer.data().add_points(chosenPoints, Eigen::RowVector3d(used_color[selectedColor][0],used_color[selectedColor][1],used_color[selectedColor][2]));
+                    } else if (color_points) {
+                        viewer.data().add_points(chosenPoints, C);
                     }
                 }
 

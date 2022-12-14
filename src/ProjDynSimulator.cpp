@@ -1640,6 +1640,7 @@ void ProjDynSimulator::setup() {
 			tmpWatch.startStopWatch();
 			m_linearSolver.analyzePattern(m_lhsMatrix);
 			m_linearSolver.factorize(m_lhsMatrix);
+//            std::cout << Eigen::MatrixXd(m_lhsMatrix) << std::endl; // TODO temp solution
 			tmpWatch.stopStopWatch();
 			std::cout << "Factorization of the system matrix took " << tmpWatch.lastMeasurement() << " microseconds." << std::endl;
 		}
@@ -1968,7 +1969,9 @@ void ProjDynSimulator::step(int numIterations)
 		// Global step: Solve the linear system with fixed constraint projections
 		//************************************
 		m_globalStepStopWatch.startStopWatch();
-		// Solve, for x, y and z in parallel
+//        std::cout << "righthand side" << std::endl; // TODO temp solution
+//        std::cout << Eigen::MatrixXd(m_rhs) << std::endl; // TODO temp solution
+        // Solve, for x, y and z in parallel
 		int d = 0;
 		PROJ_DYN_PARALLEL_FOR
 			for (d = 0; d < 3; d++) {
