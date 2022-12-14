@@ -43,17 +43,17 @@ ProjDynSimulator* initSimulator(PD::PDPositions verts, PD::PDTriangles faces, PD
 	// as well as a few reduction and simulation parameters, which are explained
 	// in the _README.txt
 	double timeStep = 16;
-	int numberSamplesForVertexPosSubspace = 150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
+	int numberSamplesForVertexPosSubspace = 0;//150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
 	double radiusMultiplierForVertexPosSubspace = 1.1; // The larger this number, the larger the support of the base functions.
 	int dimensionOfConstraintProjectionsSubspace = 120; // The constraint projections subspace will be constructed to be twice that size and then condensed via an SVD
 	double radiusMultiplierForConstraintProjectionsSubspace = 2.2;
-	int numberSampledConstraints = 1000; // Number of constraints that will be evaluated each iteration
+	int numberSampledConstraints = 0;//1000; // Number of constraints that will be evaluated each iteration
 	ProjDynSimulator* sim =
 		new ProjDynSimulator(faces, verts, velos, timeStep, 
 			numberSamplesForVertexPosSubspace, radiusMultiplierForVertexPosSubspace,
 			dimensionOfConstraintProjectionsSubspace, radiusMultiplierForConstraintProjectionsSubspace,
 			numberSampledConstraints, 
-			2, 0, true, meshURL,
+			2, 0, false, meshURL,
 			0., 3);
 
 
@@ -65,8 +65,8 @@ ProjDynSimulator* initSimulator(PD::PDPositions verts, PD::PDTriangles faces, PD
 
     // For the simulation to be meaningful we need some sorts of constraints
     // The following method adds volume preservation constraints to all tets
-    sim->addTetStrain(0.00051, 1.f, 1.f);
-//    sim->addEdgeSprings(0.051, 1.f, 1.f);
+//    sim->addTetStrain(0.00051, 1.f, 1.f);
+    sim->addEdgeSprings(0.051, 1.f, 1.f);
 
 
     // The call to the setup function computes the subspaces for vertex
@@ -238,7 +238,7 @@ int main()
 {
 	// Depending on whatever your default working directory is and wherever this mesh
 	// file is, you will need to change this URL
-	std::string meshURL = "armadillo.obj";
+	std::string meshURL = "sheet_9_verts.obj";
 
 	// Load a mesh using IGL
 	PD::PDPositions verts, velos;
@@ -258,6 +258,10 @@ int main()
         std::vector<int> sorted = simViewer.m_chosenColors;
         std::sort(sorted.begin(), sorted.end());
         std::cout << sorted[sorted.size()-1] + 1 << std::endl;
+        for (auto i: simViewer.m_chosenColors){
+            std::cout << i << ", ";
+        }
+        std::cout << std::endl;
         int amountOfColors = sorted[sorted.size()-1] + 1;
         Eigen::MatrixXd C;
         C.resize( verts.rows(), 3);
