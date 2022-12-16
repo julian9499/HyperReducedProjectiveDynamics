@@ -1215,67 +1215,45 @@ void ProjDynSimulator::colorGraph() {
 
     std::cout << "started parallel adjacency building loop" << std::endl;
 
-    auto startAdjacency = high_resolution_clock::now();
-    std::vector<Eigen::Triplet<int>> triplets;
-    triplets.reserve(m_constraints.size() * 50);
-
-    for (auto c : m_constraints) {
-        PDSparseMatrixRM p = c->getSelectionMatrix();
-        std::vector<std::vector<int>> verts;
-        for (int k=0; k<p.outerSize(); ++k){
-            for (PDSparseMatrixRM::InnerIterator it(p,k); it; ++it) {
-                if (verts.size() <= it.row()){
-                    std::vector<int> n;
-                    verts.push_back(n);
-                }
-                verts[it.row()].push_back(it.col());
-            }
-        }
-        for (auto v: verts) {
-            for (int i = 0; i < v.size(); i++) {
-                for(int j = 0; j < v.size(); j++) {
-                    triplets.emplace_back(Eigen::Triplet<int>(v[i], v[j], 1));
-                }
-            }
-        }
-    } // HERE
-    std::cout << triplets.size() << std::endl;
-
-
-    Eigen::SparseMatrix<int> adjacency;
-    adjacency.resize(m_numVertices, m_numVertices);
-    adjacency.setFromTriplets(triplets.begin(), triplets.end());
-    std::destroy(triplets.begin(), triplets.end());
-
-    auto stopAdjacency = high_resolution_clock::now();
-
 
     std::string name = m_meshURL +"_adjacencyTriplets.csv";
-    if (!std::filesystem::exists(name)){
-        std::ofstream file(name.c_str());
-        for (int k=0; k < adjacency.outerSize(); ++k)
+    std::ofstream file(name.c_str());
+    for (int k=0; k < m_lhsMatrix.outerSize(); ++k)
+    {
+        for (Eigen::SparseMatrix<PDScalar>::InnerIterator it(m_lhsMatrix,k); it; ++it)
         {
-            for (Eigen::SparseMatrix<int>::InnerIterator it(adjacency,k); it; ++it)
-            {
-                file << 1+it.row() << ","; // row index
-                file << 1+it.col() << ","; // col index (here it is equal to k)
-                file << "1" << "\n";
-            }
-            file.flush();
+            file << 1+it.row() << ","; // row index
+            file << 1+it.col() << ","; // col index (here it is equal to k)
+            file << "1" << "\n";
         }
-        file.close();
+        file.flush();
+    }
+    file.close();
+
+
+    int minDegree = INT32_MAX;
+    int maxDegree = 0;
+
+    std::vector<std::vector<int>> neighbours;
+    for(int i = 0; i < m_numVertices; i++) {
+        std::vector<int> vNeighbours;
+        for (int j = 0; j < m_numVertices; j++) {
+            if (i != j && m_lhsMatrix.coeff(i, j) != 0) {
+                vNeighbours.push_back(j);
+            }
+        }
+        if (vNeighbours.size() > maxDegree) {
+            maxDegree = vNeighbours.size();
+        }
+        if (vNeighbours.size() < minDegree) {
+            minDegree = vNeighbours.size();
+        }
+
+        neighbours.push_back(vNeighbours);
     }
 
-
-    int minDegree = adjacency.diagonal().minCoeff();
-    if (minDegree < 1) {
-        minDegree = 1;
-    }
-
-    int maxDegree = adjacency.diagonal().maxCoeff();
     std::cout << "maximum degree: " << maxDegree << std::endl;
     std::cout << "minimum degree: " << minDegree << std::endl;
-    std::cout << "average degree: " << adjacency.diagonal().mean() << std::endl;
 
     // Graph coloring line 1-3 vivace
     std::vector<int> vecs;
@@ -1287,23 +1265,12 @@ void ProjDynSimulator::colorGraph() {
         finalColor.push_back(-1);
     }
 
-    std::vector<std::vector<int>> neighbours;
-    for(int i = 0; i < m_numVertices; i++) {
-        std::vector<int> vNeighbours;
-        for (int j = 0; j < m_numVertices; j++) {
-            if (i != j && adjacency.coeff(i, j)) {
-                vNeighbours.push_back(j);
-            }
-        }
-        neighbours.push_back(vNeighbours);
-    }
-
     std::vector<std::vector<int>> colors;
     std::vector<int> amountOfColorsHad;
     for (int i = 0; i < m_numVertices; i++) {
         std::vector<int> vertexColors;
-        int colorAmount = neighbours[i].size()/minDegree;
-        for(int j = 0; j <= colorAmount; j++){
+        int colorAmount = int(ceil(neighbours[i].size()/minDegree));
+        for(int j = 0; j < colorAmount; j++){
             vertexColors.push_back(j);
         }
         amountOfColorsHad.push_back(vertexColors[vertexColors.size()-1]);
@@ -1387,17 +1354,23 @@ void ProjDynSimulator::colorGraph() {
         }
     }
 
+    std::string fileName = m_meshURL +"colors.csv";
+    std::ofstream colorFile(fileName.c_str());
+    for (auto c : chosenColor){
+        colorFile << c << ", ";
+    }
+    colorFile << "\n";
+    colorFile.flush();
+    colorFile.close();
+
     m_chosenColors = chosenColor;
-    std::cout << duration_cast<milliseconds>(stopColoring - startColoring).count() << std::endl;
-    m_adjacencyDurationMilliSeconds = duration_cast<milliseconds>(stopAdjacency - startAdjacency).count();
+    m_adjacencyDurationMilliSeconds = 0;
     m_coloringDurationMilliSeconds = duration_cast<milliseconds>(stopColoring - startColoring).count();
 
 }
 
 void ProjDynSimulator::setup() {
 	std::cout << "Setting simulation..." << std::endl;
-
-    colorGraph();
 
 #ifndef EIGEN_DONT_PARALLELIZE
 	Eigen::setNbThreads(PROJ_DYN_NUM_THREADS);
@@ -1602,26 +1575,29 @@ void ProjDynSimulator::setup() {
 			std::cout << "ERROR: RHS interpolation only available when using subspaces!" << std::endl;
 		}
 	}
+
+
+    std::cout << "Building lhs full lhs matrix... " << std::endl;
+    PDSparseMatrix conMat(m_lhsMatrix.rows(), m_lhsMatrix.cols());
+    conMat.setZero();
+    std::vector<Eigen::Triplet<PDScalar>> entries;
+    for (auto& c : m_constraints) {
+        PDSparseMatrixRM& selMat = c->getSelectionMatrix();
+        for (int k = 0; k < selMat.outerSize(); ++k)
+            for (PDSparseMatrixRM::InnerIterator it(selMat, k); it; ++it)
+            {
+                for (PDSparseMatrixRM::InnerIterator it2(selMat, k); it2; ++it2)
+                {
+                    entries.push_back(Eigen::Triplet<PDScalar>(it.col(), it2.col(), it.value() * it2.value() * c->getWeight()));
+                }
+            }
+    }
+    conMat.setFromTriplets(entries.begin(), entries.end());
+
 	// In case constraint sampling / rhs interpolation is not used
 	// we set up the constraint part of the LHS matrix manually here
 	if (!m_rhsInterpolation)
 	{
-		std::cout << "Building lhs full lhs matrix... " << std::endl;
-		PDSparseMatrix conMat(m_lhsMatrix.rows(), m_lhsMatrix.cols());
-		conMat.setZero();
-		std::vector<Eigen::Triplet<PDScalar>> entries;
-		for (auto& c : m_constraints) {
-			PDSparseMatrixRM& selMat = c->getSelectionMatrix();
-			for (int k = 0; k < selMat.outerSize(); ++k)
-				for (PDSparseMatrixRM::InnerIterator it(selMat, k); it; ++it)
-				{
-					for (PDSparseMatrixRM::InnerIterator it2(selMat, k); it2; ++it2)
-					{
-						entries.push_back(Eigen::Triplet<PDScalar>(it.col(), it2.col(), it.value() * it2.value() * c->getWeight()));
-					}
-				}
-		}
-		conMat.setFromTriplets(entries.begin(), entries.end());
 		if (m_usingSubspaces) { // Slow case: using position subspaces but no rhs interpolation
 			std::cout << "Constraining it to the subspace..." << std::endl;
 			m_subspaceLHS_mom = m_baseFunctionsTransposed * m_lhsMatrix * m_baseFunctions * (m_timeStep * m_timeStep);
@@ -1630,6 +1606,8 @@ void ProjDynSimulator::setup() {
 
 			m_denseSolver.compute(m_lhsMatrixSampled);
 			std::cout << "Size of sampled, dense lhs mat: " << m_lhsMatrixSampled.rows() << ", " << m_lhsMatrixSampled.cols() << std::endl;
+            m_lhsMatrix += conMat;
+            m_lhsMatrix.prune(0, 1e-9f);
 		}
 		else { // Full simulation
 			m_lhsMatrix += conMat;
@@ -1655,7 +1633,10 @@ void ProjDynSimulator::setup() {
 				}
 			}
 		}
-	}
+	} else {
+        m_lhsMatrix += conMat;
+        m_lhsMatrix.prune(0, 1e-9f);
+    }
 	m_recomputeFactorization = false;
 
 	// Now, all sampled constraints should have been and the used vertices can be updated,
@@ -1712,6 +1693,8 @@ void ProjDynSimulator::setup() {
 	recomputeWeightedForces();
 
 	m_precomputationStopWatch.stopStopWatch();
+
+    colorGraph();
 
 #ifndef EIGEN_DONT_PARALLELIZE
 	Eigen::setNbThreads(PROJ_DYN_EIGEN_NUM_THREADS);

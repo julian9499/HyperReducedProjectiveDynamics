@@ -43,17 +43,17 @@ ProjDynSimulator* initSimulator(PD::PDPositions verts, PD::PDTriangles faces, PD
 	// as well as a few reduction and simulation parameters, which are explained
 	// in the _README.txt
 	double timeStep = 16;
-	int numberSamplesForVertexPosSubspace = 0;//150; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
+	int numberSamplesForVertexPosSubspace = 120; // The number of degrees of freedom for the mesh vertex positions will be 12 times that
 	double radiusMultiplierForVertexPosSubspace = 1.1; // The larger this number, the larger the support of the base functions.
 	int dimensionOfConstraintProjectionsSubspace = 120; // The constraint projections subspace will be constructed to be twice that size and then condensed via an SVD
 	double radiusMultiplierForConstraintProjectionsSubspace = 2.2;
-	int numberSampledConstraints = 0;//1000; // Number of constraints that will be evaluated each iteration
+	int numberSampledConstraints = 1000; // Number of constraints that will be evaluated each iteration
 	ProjDynSimulator* sim =
 		new ProjDynSimulator(faces, verts, velos, timeStep, 
 			numberSamplesForVertexPosSubspace, radiusMultiplierForVertexPosSubspace,
 			dimensionOfConstraintProjectionsSubspace, radiusMultiplierForConstraintProjectionsSubspace,
 			numberSampledConstraints, 
-			2, 0, false, meshURL,
+			2, 0, true, meshURL,
 			0., 3);
 
 
@@ -65,8 +65,8 @@ ProjDynSimulator* initSimulator(PD::PDPositions verts, PD::PDTriangles faces, PD
 
     // For the simulation to be meaningful we need some sorts of constraints
     // The following method adds volume preservation constraints to all tets
-//    sim->addTetStrain(0.00051, 1.f, 1.f);
-    sim->addEdgeSprings(0.051, 1.f, 1.f);
+    sim->addTetStrain(0.00051, 1.f, 1.f);
+//    sim->addEdgeSprings(0.051, 1.f, 1.f);
 
 
     // The call to the setup function computes the subspaces for vertex
@@ -231,7 +231,8 @@ int main()
 {
 	// Depending on whatever your default working directory is and wherever this mesh
 	// file is, you will need to change this URL
-	std::string meshURL = "sheet_9_verts.obj";
+    std::string meshURL = "armadillo.obj";
+//    std::string meshURL = "sphere.obj";
 
 	// Load a mesh using IGL
 	PD::PDPositions verts, velos;
@@ -255,6 +256,8 @@ int main()
         int amountOfColors = sorted[sorted.size()-1] + 1;
         Eigen::MatrixXd C;
         C.resize( verts.rows(), 3);
+        Eigen::MatrixXd pointColors;
+        pointColors.resize( simViewer.m_numVertices, 3);
         Eigen::MatrixXd chosenPoints;
         std::vector<std::vector<double>> rainbow_colors {
                 { 0.8588235294117647, 0.5803921568627451, 0.20784313725490197},
@@ -321,11 +324,16 @@ int main()
         };
         std::vector<std::vector<double>>& used_color = rainbow_colors;
 
-        for(int i = 0; i < verts.rows(); i++) {
+        for(int i = 0; i < pointColors.rows(); i++) {
             int chosenColor = simViewer.m_chosenColors[i];
-            C(i, 0) = used_color[chosenColor][0];
-            C(i, 1) = used_color[chosenColor][1];
-            C(i, 2) = used_color[chosenColor][2];
+            if (i < verts.rows()) {
+                C(i, 0) = used_color[chosenColor][0];
+                C(i, 1) = used_color[chosenColor][1];
+                C(i, 2) = used_color[chosenColor][2];
+            }
+            pointColors(i, 0) = used_color[chosenColor][0];
+            pointColors(i, 1) = used_color[chosenColor][1];
+            pointColors(i, 2) = used_color[chosenColor][2];
         }
 
 
@@ -335,8 +343,8 @@ int main()
         viewer.plugins.push_back(&plugin);
         igl::opengl::glfw::imgui::ImGuiMenu menu;
         plugin.widgets.push_back(&menu);
-        float r = 1.0;
-        float g = 1.0;
+        float r = 0.5;
+        float g = 0.5;
         float b = 0.0;
 
 		viewer.data().set_mesh(verts, faces);
@@ -349,7 +357,6 @@ int main()
         bool color_verts = true;
         bool color_points = false;
         bool draw_selected_color = false;
-
 
         menu.callback_draw_viewer_menu = [&]()
         {
@@ -382,7 +389,7 @@ int main()
                 // Expose an enumeration type
                 enum ColorPattern { Rainbow=0, HSL };
                 static ColorPattern color = Rainbow;
-                ImGui::Combo("Color pattern", (int *)(&color), "Rainbow\0Hsl\0\0");
+                ImGui::Combo("Color pattern", (int *)(&color), "Rainbow\0Hsl\0");
                 // Add a button
                 if (ImGui::Button("set Color", ImVec2(-1,0)))
                 {
@@ -400,27 +407,35 @@ int main()
                     if  (draw_selected_color){
                         chosenPoints.resize( count, 3);
                     } else {
-                        chosenPoints.resize( verts.rows(), 3);
+                        chosenPoints.resize( pointColors.rows(), 3);
                     }
                     count = 0;
-                    for(int i = 0; i < verts.rows(); i++) {
+                    for(int i = 0; i < pointColors.rows(); i++) {
                         int chosenColor = simViewer.m_chosenColors[i];
 
                         if ((draw_selected_color && chosenColor == selectedColor) || !draw_selected_color) {
-                            C(i, 0) = used_color[chosenColor][0];
-                            C(i, 1) = used_color[chosenColor][1];
-                            C(i, 2) = used_color[chosenColor][2];
+                            if (i < verts.rows()){
+                                C(i, 0) = used_color[chosenColor][0];
+                                C(i, 1) = used_color[chosenColor][1];
+                                C(i, 2) = used_color[chosenColor][2];
+                            }
+                            pointColors(i, 0) = used_color[chosenColor][0];
+                            pointColors(i, 1) = used_color[chosenColor][1];
+                            pointColors(i, 2) = used_color[chosenColor][2];
                             chosenPoints.row(count) = simViewer.m_sim->getPositions().row(i);
                             count += 1;
                         } else {
-                            C(i, 0) = 1.0;
-                            C(i, 1) = 1.0;
-                            C(i, 2) = 0.0;
+                            if (i < verts.rows()){
+                                C(i, 0) = 1.0;
+                                C(i, 1) = 1.0;
+                                C(i, 2) = 0.0;
+                            }
                         }
                     }
+
                     viewer.data().clear_points();
 //                    viewer.data().clear();
-                    viewer.data().uniform_colors(Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b));
+                    viewer.data().uniform_colors(Eigen::Vector3d(r,g,b), Eigen::Vector3d(r,g,b), Eigen::Vector3d(0.f,0.f,0.f));
 
                     viewer.data().set_mesh(simViewer.m_sim->getPositions().block(0,0,numVertices,3), faces);
                     if (color_verts){
@@ -429,7 +444,7 @@ int main()
                     if (color_points && draw_selected_color) {
                         viewer.data().add_points(chosenPoints, Eigen::RowVector3d(used_color[selectedColor][0],used_color[selectedColor][1],used_color[selectedColor][2]));
                     } else if (color_points) {
-                        viewer.data().add_points(chosenPoints, C);
+                        viewer.data().add_points(chosenPoints, pointColors);
                     }
                 }
 
